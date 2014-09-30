@@ -20,6 +20,12 @@ _NDIVS = 100
 
 #------------------------------------------------------------------------------
 
+def r2d(r):
+    """radians to degrees"""
+    return (180.0 * r) / math.pi
+
+#------------------------------------------------------------------------------
+
 def dot(u, v):
     return (u[0] * v[0]) + (u[1] * v[1]) + (u[2] * v[2])
 
@@ -81,7 +87,7 @@ def quadratic(a, b, c):
 #------------------------------------------------------------------------------
 
 class cylinder:
-    def __init__(self, o, a, r, l):
+    def __init__(self, o, a, r, l, color):
         """
         o = origin coordinates
         a = axis vector
@@ -92,6 +98,7 @@ class cylinder:
         self.a = normalize(a)
         self.r = r
         self.l = l
+        self.color = color
         # 1st normal to cylinder axis
         self.n0 = normalize(gen_normal(self.a))
         # 2nd normal to cylinder axis
@@ -115,6 +122,20 @@ class cylinder:
             # the line starts at point p and is in the direction of the cylinder axis
             lines.append((p, self.a))
         return lines
+
+    def scad(self):
+        """
+        Generate OpenSCAD code for this cylinder.
+        """
+        s = []
+        rx = r2d(math.atan2(self.a[1], self.a[2]))
+        ry = r2d(math.atan2(self.a[0], self.a[2]))
+        rz = r2d(math.atan2(self.a[0], self.a[1]))
+        s.append('translate([%f, %f, %f])' % (self.o[0], self.o[1], self.o[2]))
+        s.append('rotate([%f, %f, %f])' % (rx, ry, rz))
+        s.append('color("%s")' % self.color)
+        s.append('cylinder(h = %f, r = %f, $fn = 100);\n' % (self.l, self.r))
+        return '\n'.join(s)
 
     def __str__(self):
         s = []
@@ -144,13 +165,26 @@ class cylinder:
 
 #------------------------------------------------------------------------------
 
+def gen_scad(name, c0, c1):
+    """
+    Generate an OpenSCAD file to validate the cylinder positioning with a 3D model.
+    """
+    f = open(name, 'w')
+    f.write(c0.scad())
+    f.write(c1.scad())
+    f.close()
+
+#------------------------------------------------------------------------------
+
 def main():
 
-    c0 = cylinder((0.0,0.0,-10.0), (0.0,0.0,1.0), 2.875/2.0, 20.0)
-    c1 = cylinder((0.0,10.0,-10.0), (0.0,-1.0,1.0), 2.875/2.0, 20.0)
+    c0 = cylinder((0.0,0.0,-10.0), (0.0,0.0,1.0), 2.875/2.0, 20.0, 'red')
+    c1 = cylinder((0.0,10.0,-10.0), (1.0,0.0,0.0), 2.875/2.0, 20.0, 'blue')
 
     print c0
     print c1
+
+    gen_scad('test.scad', c0, c1)
 
     lines = c1.gen_lines()
 

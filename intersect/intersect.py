@@ -16,7 +16,7 @@ from dxfwrite import DXFEngine as dxf
 #------------------------------------------------------------------------------
 
 # number of divisions around the cylinder circumference
-_NDIVS = 32
+_NDIVS = 100
 
 #------------------------------------------------------------------------------
 
@@ -36,7 +36,7 @@ def cross(u, v):
 #------------------------------------------------------------------------------
 
 def gen_normal(v):
-    """return a normal to the vector"""
+    """return a normal to a vector"""
     if v[0] == 0.0:
         return (1.0, 0.0, 0.0)
     if v[1] == 0.0:
@@ -47,8 +47,15 @@ def gen_normal(v):
 
 #------------------------------------------------------------------------------
 
+def line_x(l, t):
+    """return the line position given the line and the t-parameter"""
+    (u, v) = l
+    return (u[0] + (v[0] * t), u[1] + (v[1] * t), u[2] + (v[2] * t))
+
+#------------------------------------------------------------------------------
+
 def quadratic(a, b, c):
-    """return real solutions for a qaudratic"""
+    """return the real solutions of a quadratic"""
     a = float(a)
     b = float(b)
     c = float(c)
@@ -85,27 +92,28 @@ class cylinder:
         self.a = normalize(a)
         self.r = r
         self.l = l
+        # 1st normal to cylinder axis
+        self.n0 = normalize(gen_normal(self.a))
+        # 2nd normal to cylinder axis
+        # a, n0 and n1 are orthogonal unit vectors
+        self.n1 = normalize(cross(self.a, self.n0))
 
     def gen_lines(self):
         """
         Generate the cylinder surface lines used to intersect with
         the other cylinder.
         """
-        # 1st normal to cylinder axis
-        u = normalize(gen_normal(self.a))
-        # 2nd normal to cylinder axis
-        v = normalize(cross(self.a, u))
         lines = []
         # step around the parameterised base circle
         for i in range(_NDIVS):
             theta = 2.0 * math.pi * i / _NDIVS
             rc = self.r * math.cos(theta)
             rs = self.r * math.sin(theta)
-            l = (self.o[0] + (rc * u[0]) + (rs * v[0]),
-                 self.o[1] + (rc * u[1]) + (rs * v[1]),
-                 self.o[2] + (rc * u[2]) + (rs * v[2]))
-            # the line starts at point l and is in the direction of the cylinder axis
-            lines.append((l, self.a))
+            p = (self.o[0] + (rc * self.n0[0]) + (rs * self.n1[0]),
+                 self.o[1] + (rc * self.n0[1]) + (rs * self.n1[1]),
+                 self.o[2] + (rc * self.n0[2]) + (rs * self.n1[2]))
+            # the line starts at point p and is in the direction of the cylinder axis
+            lines.append((p, self.a))
         return lines
 
     def __str__(self):
@@ -119,43 +127,58 @@ class cylinder:
     def intersect_line(self, l):
         """
         Intersect a line with this cylinder.
+        Return the line t values for the intersection points.
         """
-        # x = a + tn
-        pass
-
+        (u, v) = l
+        # re-express the line vector in terms of the orthogonal unit vectors
+        # oriented to the cylinder axis.
+        vn = (dot(v, self.n0), dot(v, self.n1), dot(v, self.a))
+        # x = u + vn.t
+        # d = dist to cylinder axis (ignore the component in self.a direction)
+        # d^2 = (u0 + vn0 * t)^2 + (u1 + vn1 * t)^2
+        # solve t for d = radius to find intersection points
+        a = (vn[0] * vn[0]) + (vn[1] * vn[1])
+        b = 2.0 * ((u[0] * vn[0]) + (u[1] * vn[1]))
+        c = (u[0] * u[0]) + (u[1] * u[1]) - (self.r * self.r)
+        return quadratic(a, b, c)
 
 #------------------------------------------------------------------------------
 
 def main():
 
-    c0 = cylinder((0,0,0), (0,0,1), 1, 10)
+    c0 = cylinder((0.0,0.0,-10.0), (0.0,0.0,1.0), 2.875/2.0, 20.0)
+    c1 = cylinder((0.0,10.0,-10.0), (0.0,-1.0,1.0), 2.875/2.0, 20.0)
+
     print c0
-    lines = c0.gen_lines()
+    print c1
+
+    lines = c1.gen_lines()
+
 
     drawing = dxf.drawing('test.dxf')
 
-    pl = dxf.polyline()
-    for l in lines:
-        pl.add_vertex(l[0])
-    pl.close()
-    drawing.add(pl)
+
+    u = (2.0, 0.0, 0.0)
+    for i in range(_NDIVS):
+        theta = 2.0 * math.pi * i / _NDIVS
+        v = normalize((math.cos(theta), math.sin(theta),10.0))
+        l = (u, v)
+        t_vals = c0.intersect_line(l)
+        if t_vals[0] == 'inf':
+            print 'infinite intersections'
+        elif t_vals[0] == '0':
+            print 'no intersections'
+        elif t_vals[0] == '1':
+            print line_x(l, t_vals[1])
+        elif t_vals[0] == '2':
+            print line_x(l, t_vals[1]), line_x(l, t_vals[2])
+            i0 = line_x(l, t_vals[1])
+            i1 = line_x(l, t_vals[2])
+            drawing.add(dxf.line((i0[1], i0[2]), (i1[1], i1[2])))
+        else:
+            print 'invalid'
+
     drawing.save()
-
-    print quadratic(0,0,0)
-    print quadratic(0,0,1)
-    print quadratic(0,1,0)
-    print quadratic(0,1,1)
-    print quadratic(1,0,0)
-    print quadratic(1,0,1)
-    print quadratic(1,1,0)
-    print quadratic(1,1,1)
-
-    print quadratic(1,2,3)
-    print quadratic(3,2,1)
-    print quadratic(1,-4,3)
-    print quadratic(1,-1,-2)
-    print quadratic(1,0,-25)
-
 
 
 main()

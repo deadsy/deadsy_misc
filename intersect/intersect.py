@@ -16,7 +16,7 @@ from dxfwrite import DXFEngine as dxf
 #------------------------------------------------------------------------------
 
 # number of divisions around the cylinder circumference
-_NDIVS = 100
+_NDIVS = 32
 
 #------------------------------------------------------------------------------
 
@@ -176,43 +176,49 @@ def gen_scad(name, c0, c1):
 
 #------------------------------------------------------------------------------
 
+def gen_dxf(name, c0, c1):
+
+    lines = c1.gen_lines()
+
+    drawing = dxf.drawing(name)
+
+    # base line is the circumfrence of c1
+    base = 2.0 * math.pi * c1.r
+    drawing.add(dxf.line((0.0, 0.0), (base, 0.0)))
+
+    for i in range(_NDIVS):
+        x = i * base / _NDIVS
+        t_vals = c0.intersect_line(lines[i])
+        if t_vals[0] == 'inf':
+            pass
+        elif t_vals[0] == '0':
+            drawing.add(dxf.line((x, 0.0), (x, c1.l)))
+        elif t_vals[0] == '1':
+            drawing.add(dxf.line((x, 0.0), (x, c1.l)))
+        elif t_vals[0] == '2':
+            if t_vals[1] > t_vals[2]:
+                y0 = t_vals[2]
+                y1 = t_vals[1]
+            else:
+                y1 = t_vals[2]
+                y0 = t_vals[1]
+            drawing.add(dxf.line((x, 0.0), (x, y0)))
+            drawing.add(dxf.line((x, y1), (x, c1.l)))
+
+    drawing.save()
+
+#------------------------------------------------------------------------------
+
 def main():
 
     c0 = cylinder((0.0,0.0,-10.0), (0.0,0.0,1.0), 2.875/2.0, 20.0, 'red')
-    c1 = cylinder((0.0,10.0,-10.0), (1.0,0.0,0.0), 2.875/2.0, 20.0, 'blue')
+    c1 = cylinder((0.0,10.0,-10.0), (0.0,-1.0,1.0), 2.875/2.0, 20.0, 'blue')
 
     print c0
     print c1
 
     gen_scad('test.scad', c0, c1)
-
-    lines = c1.gen_lines()
-
-
-    drawing = dxf.drawing('test.dxf')
-
-
-    u = (2.0, 0.0, 0.0)
-    for i in range(_NDIVS):
-        theta = 2.0 * math.pi * i / _NDIVS
-        v = normalize((math.cos(theta), math.sin(theta),10.0))
-        l = (u, v)
-        t_vals = c0.intersect_line(l)
-        if t_vals[0] == 'inf':
-            print 'infinite intersections'
-        elif t_vals[0] == '0':
-            print 'no intersections'
-        elif t_vals[0] == '1':
-            print line_x(l, t_vals[1])
-        elif t_vals[0] == '2':
-            print line_x(l, t_vals[1]), line_x(l, t_vals[2])
-            i0 = line_x(l, t_vals[1])
-            i1 = line_x(l, t_vals[2])
-            drawing.add(dxf.line((i0[1], i0[2]), (i1[1], i1[2])))
-        else:
-            print 'invalid'
-
-    drawing.save()
+    gen_dxf('test.dxf', c0, c1)
 
 
 main()

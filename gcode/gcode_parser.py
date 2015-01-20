@@ -2,6 +2,8 @@
 
 ifile = 'test.gc'
 
+comments = False
+
 #------------------------------------------------------------------------------
 # scanner
 
@@ -79,7 +81,8 @@ def p_line(p):
   '''line : line_number
           | line_number words
           | words'''
-  print('p_line')
+  if len(p) == 3:
+    print p[2]
 
 def p_words(p):
   '''words : words word
@@ -88,12 +91,10 @@ def p_words(p):
     p[0] = '%s %s' % (p[1], p[2])
   else:
     p[0] = p[1]
-  print p[0]
 
 def p_line_number(p):
   'line_number : N INTEGER'
-  #print('%s%s' % (p[1], p[2]))
-  pass
+  p[0] = None
 
 def p_word(p):
   '''word : general_function
@@ -121,87 +122,107 @@ def p_word(p):
 
 def p_general_function(p):
   'general_function : G INTEGER'
-  p[0] = '%s%s' % (p[1], p[2])
+  description = {
+    '00': 'rapid move',
+    '01': 'linear move',
+    '17': 'xy plane',
+    '20': 'use inches',
+    '21': 'use mm',
+    '40': 'cutter compensation off',
+    '43': 'tool length offset',
+    '49': 'cancel tool length compensation',
+    '70': '??',
+    '80': 'cancel canned cycle',
+    '90': 'abs distance',
+    '91': 'inc distance',
+    '93': 'feed inverse time',
+    '94': 'feed units/min',
+    '95': 'feed units/rev',
+  }
+  if comments and description.has_key(p[2]):
+    p[0] = 'g%s (%s)' % (p[2], description[p[2]])
+  else:
+    p[0] = 'g%s' % p[2]
 
 def p_tool_selection(p):
   'tool_selection : T INTEGER'
-  p[0] = '%s%s' % (p[1], p[2])
+  p[0] = 't%s' % p[2]
 
 def p_misc_function(p):
   'misc_function : M INTEGER'
-  p[0] = '%s%s' % (p[1], p[2])
+  p[0] = 'm%s' % p[2]
 
 def p_feed_rate(p):
   'feed_rate : F DECIMAL'
-  p[0] = '%s%s' % (p[1], p[2])
+  p[0] = 'f%s' % p[2]
 
 def p_spindle_speed(p):
   'spindle_speed : S INTEGER'
-  p[0] = '%s%s' % (p[1], p[2])
+  p[0] = 's%s' % p[2]
 
 def p_tool_length_offset_index(p):
   'tool_length_offset_index : H INTEGER'
-  p[0] = '%s%s' % (p[1], p[2])
+  p[0] = 'h%s' % p[2]
 
 def p_x_axis(p):
   'x_axis : X DECIMAL'
-  p[0] = '%s%s' % (p[1], p[2])
+  p[0] = 'x%s' % p[2]
 
 def p_y_axis(p):
   'y_axis : Y DECIMAL'
-  p[0] = '%s%s' % (p[1], p[2])
+  p[0] = 'y%s' % p[2]
 
 def p_z_axis(p):
   'z_axis : Z DECIMAL'
-  p[0] = '%s%s' % (p[1], p[2])
+  p[0] = 'z%s' % p[2]
 
 def p_a_axis(p):
   'a_axis : A DECIMAL'
-  p[0] = '%s%s' % (p[1], p[2])
+  p[0] = 'a%s' % p[2]
 
 def p_b_axis(p):
   'b_axis : B DECIMAL'
-  p[0] = '%s%s' % (p[1], p[2])
+  p[0] = 'b%s' % p[2]
 
 def p_c_axis(p):
   'c_axis : C DECIMAL'
-  p[0] = '%s%s' % (p[1], p[2])
+  p[0] = 'c%s' % p[2]
 
 def p_u_axis(p):
   'u_axis : U DECIMAL'
-  p[0] = '%s%s' % (p[1], p[2])
+  p[0] = 'u%s' % p[2]
 
 def p_v_axis(p):
   'v_axis : V DECIMAL'
-  p[0] = '%s%s' % (p[1], p[2])
+  p[0] = 'v%s' % p[2]
 
 def p_w_axis(p):
   'w_axis : W DECIMAL'
-  p[0] = '%s%s' % (p[1], p[2])
+  p[0] = 'w%s' % p[2]
 
 def p_x_offset(p):
   'x_offset : I DECIMAL'
-  p[0] = '%s%s' % (p[1], p[2])
+  p[0] = 'i%s' % p[2]
 
 def p_y_offset(p):
   'y_offset : J DECIMAL'
-  p[0] = '%s%s' % (p[1], p[2])
+  p[0] = 'j%s' % p[2]
 
 def p_z_offset(p):
   'z_offset : K DECIMAL'
-  p[0] = '%s%s' % (p[1], p[2])
+  p[0] = 'k%s' % p[2]
 
 def p_dwell_time(p):
   'dwell_time : P DECIMAL'
-  p[0] = '%s%s' % (p[1], p[2])
+  p[0] = 'p%s' % p[2]
 
 def p_feed_increment(p):
   'feed_increment : Q DECIMAL'
-  p[0] = '%s%s' % (p[1], p[2])
+  p[0] = 'q%s' % p[2]
 
 def p_arc_radius(p):
   'arc_radius : R DECIMAL'
-  p[0] = '%s%s' % (p[1], p[2])
+  p[0] = 'r%s' % p[2]
 
 # Error rule for syntax errors
 def p_error(p):
